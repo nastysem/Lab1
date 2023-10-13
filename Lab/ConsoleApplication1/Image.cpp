@@ -12,7 +12,7 @@ private:
     BITMAPINFOHEADER myInfo;
     int stride;
     int padding;
-    //метод для создания padding
+    //method for padding creation
     void generateStride() {
         int bytesPerPixel = myInfo.biBitCount / 8;
         int alignment = 4;
@@ -21,12 +21,12 @@ private:
         stride *= alignment;
         padding = stride - myInfo.biWidth * bytesPerPixel;
     }
-    //метод для создания буфера
+    //method for buffer creation
     unsigned char* createBuffer() {
         unsigned char* buffer = new unsigned char[stride * myInfo.biHeight];
         return buffer;
     }
-    //метод для переписывания инфы из одного буфера в другой БЕЗ нулей
+    //method for rewriting information from one buffer to another WITHOUT nulls
     void deleteNull(unsigned char* buffer, unsigned char* firstBuffer, int width, int height, int padding, int stride) {
         int r = 0;
         int q = 0;
@@ -41,7 +41,7 @@ private:
             }
         }
     }
-    //метод для переписывания инфы из одного буфера в другой ДОБАВЛЯЯ нули
+    //method for rewriting information from one buffer to another ADDING nulls
     void addNull(unsigned char* buffer, unsigned char* secondBuffer, int width, int height, int padding, int stride) {
         int m = 0;
         int n = 0;
@@ -57,7 +57,7 @@ private:
             }
         }
     }
-    //метод для генерации коэффициентов гауссова ядра
+    //method for generating Gaussian kernel coefficients
     double* generate_coeff(int radius, double sigma) {
         int sq = 2 * radius + 1;
         double* coeff = new double[sq * sq];
@@ -72,34 +72,34 @@ private:
 
             }
         }
-        //нормируем
+        //normalize
         for (int i = 0; i < sq * sq; i++) {
             coeff[i] /= sum;
         }
         return coeff;
     }
 public:
-    //чтение файла
+    //method for reading the file
     unsigned char* readBMP(string filename) {
         std::ifstream myPicture(filename, std::ifstream::binary);
         if (!myPicture.is_open()) {
-            std::cout << "Ошибка открытия файла. Попробуйте повторить попытку или введите другое имя." << std::endl;
+            std::cout << "File opening error. Try again or enter a different file name." << std::endl;
             myPicture.close();
             exit(1);
         }
-        //читаем заголовок
+        //read the header
         myPicture.read(reinterpret_cast<char*>(&myHeader.bfType), sizeof(myHeader.bfType));
         myPicture.read(reinterpret_cast<char*>(&myHeader.bfSize), sizeof(myHeader.bfSize));
         myPicture.read(reinterpret_cast<char*>(&myHeader.bfReserved1), sizeof(myHeader.bfReserved1));
         myPicture.read(reinterpret_cast<char*>(&myHeader.bfReserved2), sizeof(myHeader.bfReserved2));
         myPicture.read(reinterpret_cast<char*>(&myHeader.bfOffBits), sizeof(myHeader.bfOffBits));
-        //проверяем условия, связанные с заголовком
+        //check the conditions associated with the header
         if (myHeader.bfType != 0x4d42) {
-            std::cout << "Данный файл не является BMP файлом." << std::endl;
+            std::cout << "This file is not a BMP file." << std::endl;
             myPicture.close();
             exit(1);
         }
-        //читаем инфу
+        //read the information
         myPicture.read(reinterpret_cast<char*>(&myInfo.biSize), sizeof(myInfo.biSize));
         myPicture.read(reinterpret_cast<char*>(&myInfo.biWidth), sizeof(myInfo.biWidth));
         myPicture.read(reinterpret_cast<char*>(&myInfo.biHeight), sizeof(myInfo.biHeight));
@@ -129,27 +129,27 @@ public:
                 myPicture.read(reinterpret_cast<char*>(&myInfo.biReserved), sizeof(myInfo.biReserved));
             }
         }
-        //проверяем условия
+        //check the conditions
         if ((myInfo.biSize != 40 && myInfo.biSize != 108 && myInfo.biSize != 124) ||
             myHeader.bfReserved1 != 0 ||
             myHeader.bfReserved2 != 0 ||
             myInfo.biPlanes != 1 ||
-            myInfo.biCompression != 0 || //рассматриваем только несжатые изображения
-            myInfo.biBitCount != 24) //рассматриваем только полноцветные изображения
+            myInfo.biCompression != 0 || //consider only uncompressed images
+            myInfo.biBitCount != 24) //consider only full-color images
         {
-            std::cout << "Неподдерживаемый BMP формат." << std::endl;
+            std::cout << "Unsupported BMP format." << std::endl;
             myPicture.close();
             exit(1);
         }
         generateStride();
-        //создаем буфер
+        //buffer creation
         unsigned char* buffer = createBuffer();
-        //читаем в буфер
+        //read to the buffer
         myPicture.read(reinterpret_cast<char*> (buffer), stride * myInfo.biHeight);
         myPicture.close();
         return buffer;
     }
-    //записываем в bmp
+    //method for writing to the bmp
     void writeBMP(string filename, unsigned char* buffer) {
         std::ofstream myNewPicture(filename, std::ofstream::binary);
         myNewPicture.write(reinterpret_cast<char*>(&myHeader.bfType), sizeof(myHeader.bfType));
@@ -186,27 +186,27 @@ public:
                 myNewPicture.write(reinterpret_cast<char*>(&myInfo.biReserved), sizeof(myInfo.biReserved));
             }
         }
-        //записываем данные из буфера
+        //write data from the buffer
         myNewPicture.write(reinterpret_cast<char*> (buffer), stride * myInfo.biHeight);
         delete[]buffer;
         myNewPicture.close();
     }
-    //метод для поворота изображения
+    //method for image rotation
     unsigned char* rotate(int angle, unsigned char* buffer) {
-        //меняем высоту и ширину местами
+        //change the height and width in places
         int tmp1 = myInfo.biWidth;
         myInfo.biWidth = myInfo.biHeight;
         myInfo.biHeight = tmp1;
         int tmp2 = stride;
         generateStride();
-        //создаем padding для высоты
+        //create padding for height
         int padding2 = tmp2 - myInfo.biHeight * 3;
         unsigned char* firstBuffer = new unsigned char[3 * myInfo.biWidth * myInfo.biHeight];
         unsigned char* secondBuffer = new unsigned char[3 * myInfo.biWidth * myInfo.biHeight];
-        //переписываем инфу о пикселях из буфера, удаляя нули
+        //rewrite information about pixels from the buffer, removing nulls
         deleteNull(buffer, firstBuffer, myInfo.biHeight, myInfo.biWidth, padding2, tmp2);
         delete[]buffer;
-        //поворачиваем либо на 90, либо на 270 градусов 
+        //turn either 90 or 270 degrees
         switch (angle) {
         case(90):
             for (int i = 0; i < myInfo.biHeight; i++) {
@@ -229,13 +229,13 @@ public:
         }
         delete[]firstBuffer;
         unsigned char* buffer2 = createBuffer();
-        //переписываем полученную инфу, добавляя нули
+        //rewrite the received information by adding nulls
         addNull(buffer2, secondBuffer, myInfo.biWidth, myInfo.biHeight, padding, stride);
         delete[]secondBuffer;
         myHeader.bfSize = myInfo.biSize + 14 + stride * myInfo.biHeight;
         return buffer2;
     }
-    //метод для накладывания фильтра гаусса
+    // method for applying a Gauss filter
     unsigned char* blur_collapsed(int radius, double sigma, unsigned char* buffer) {
         unsigned char* firstBuffer = new unsigned char[3 * myInfo.biWidth * myInfo.biHeight];
         unsigned char* secondBuffer = new unsigned char[3 * myInfo.biWidth * myInfo.biHeight];
@@ -243,7 +243,7 @@ public:
         delete[]buffer;
         double* coeff = generate_coeff(radius, sigma);
         int sq = 2 * radius + 1;
-        //накладываем фильтр на пиксели 
+        //apply a filter on pixels
         int i, j, m, n;
         double a1 = 0; double a2 = 0; double a3 = 0;
         for (i = 0; i < myInfo.biHeight; i++) {
@@ -253,6 +253,7 @@ public:
                 a3 = 0;
                 for (m = -radius; m < radius + 1; m++) {
                     for (n = -radius; n < radius + 1; n++) {
+                        //condition for correct image recording
                         if (m + i >= 0 && m + i < myInfo.biHeight && n + j >= 0 && n + j < myInfo.biWidth) {
                             a1 += coeff[sq * (m + radius) + n + radius] * firstBuffer[3 * ((i + m) * (myInfo.biWidth) + (j + n))];
                             a2 += coeff[sq * (m + radius) + n + radius] * firstBuffer[3 * ((i + m) * (myInfo.biWidth) + (j + n)) + 1];

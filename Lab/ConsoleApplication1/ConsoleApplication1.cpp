@@ -3,7 +3,6 @@
 #include "Image.cpp"
 
 int main() {
-	setlocale(LC_CTYPE, "rus");
 	Image bmp;
 	bmp.writeBMP("copy.bmp", bmp.readBMP("picture.bmp"));
 	bmp.writeBMP("copy2.bmp", bmp.rotate(90, bmp.readBMP("picture.bmp")));
