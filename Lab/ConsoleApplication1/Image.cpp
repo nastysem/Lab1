@@ -22,8 +22,11 @@ private:
         padding = stride - myInfo.biWidth * bytesPerPixel;
     }
     //method for buffer creation
-    unsigned char* createBuffer() {
-        unsigned char* buffer = new unsigned char[stride * myInfo.biHeight];
+    unsigned char** createBuffer() {
+        unsigned char** buffer = new unsigned char* [myInfo.biHeight];
+        for (int i = 0; i < myInfo.biHeight; i++) {
+            buffer[i] = new unsigned char[3 * myInfo.biWidth];
+        }
         return buffer;
     }
     //method for rewriting information from one buffer to another WITHOUT nulls
@@ -59,8 +62,8 @@ private:
     }
     //method for generating Gaussian kernel coefficients
     double* generate_coeff(int radius, double sigma) {
-        int sq = 2 * radius + 1;
-        double* coeff = new double[sq * sq];
+        const int sq = 2 * radius + 1;
+        double* coeff = new double[sq*sq];
         for (int i = 0; i < sq * sq; i++) {
             coeff[i] = 0;
         }
@@ -80,7 +83,7 @@ private:
     }
 public:
     //method for reading the file
-    unsigned char* readBMP(string filename) {
+    unsigned char** readBMP(string filename) {
         std::ifstream myPicture(filename, std::ifstream::binary);
         if (!myPicture.is_open()) {
             std::cout << "File opening error. Try again or enter a different file name." << std::endl;
@@ -142,15 +145,17 @@ public:
             exit(1);
         }
         generateStride();
-        //buffer creation
-        unsigned char* buffer = createBuffer();
         //read to the buffer
-        myPicture.read(reinterpret_cast<char*> (buffer), stride * myInfo.biHeight);
+        unsigned char** buffer = createBuffer();
+        for (int i = 0; i < myInfo.biHeight; i++) {
+            myPicture.read(reinterpret_cast<char*>(buffer[i]), 3 * myInfo.biWidth);
+            myPicture.seekg(padding, std::ios_base::cur);
+        }
         myPicture.close();
         return buffer;
     }
     //method for writing to the bmp
-    void writeBMP(string filename, unsigned char* buffer) {
+    void writeBMP(string filename, unsigned char** buffer) {
         std::ofstream myNewPicture(filename, std::ofstream::binary);
         myNewPicture.write(reinterpret_cast<char*>(&myHeader.bfType), sizeof(myHeader.bfType));
         myNewPicture.write(reinterpret_cast<char*>(&myHeader.bfSize), sizeof(myHeader.bfSize));
@@ -186,13 +191,24 @@ public:
                 myNewPicture.write(reinterpret_cast<char*>(&myInfo.biReserved), sizeof(myInfo.biReserved));
             }
         }
+        generateStride();
         //write data from the buffer
-        myNewPicture.write(reinterpret_cast<char*> (buffer), stride * myInfo.biHeight);
-        delete[]buffer;
+        unsigned char* buffer2 = new unsigned char[stride];
+        for (int i = 0; i < myInfo.biHeight; i++) {
+            for (int j = 0; j < 3 * myInfo.biWidth; j++) {
+                buffer2[j] = buffer[i][j];
+            }
+            myNewPicture.write(reinterpret_cast<char*>(buffer2), stride);
+        }
         myNewPicture.close();
+        delete[]buffer2;
+        for (int i = 0; i < myInfo.biHeight; i++) {
+            delete[]buffer[i];
+        }
+        delete[]buffer;
     }
     //method for image rotation
-    unsigned char* rotate(int angle, unsigned char* buffer) {
+    unsigned char** rotate(int angle, unsigned char** buffer) {
         //change the height and width in places
         int tmp1 = myInfo.biWidth;
         myInfo.biWidth = myInfo.biHeight;
@@ -201,51 +217,42 @@ public:
         generateStride();
         //create padding for height
         int padding2 = tmp2 - myInfo.biHeight * 3;
-        unsigned char* firstBuffer = new unsigned char[3 * myInfo.biWidth * myInfo.biHeight];
-        unsigned char* secondBuffer = new unsigned char[3 * myInfo.biWidth * myInfo.biHeight];
-        //rewrite information about pixels from the buffer, removing nulls
-        deleteNull(buffer, firstBuffer, myInfo.biHeight, myInfo.biWidth, padding2, tmp2);
-        delete[]buffer;
+        unsigned char** buffer2 = createBuffer();
         //turn either 90 or 270 degrees
         switch (angle) {
         case(90):
             for (int i = 0; i < myInfo.biHeight; i++) {
                 for (int j = 0; j < myInfo.biWidth; j++) {
-                    secondBuffer[3 * (i * myInfo.biWidth + j)] = firstBuffer[3 * (j * myInfo.biHeight + i)];
-                    secondBuffer[3 * (i * myInfo.biWidth + j) + 1] = firstBuffer[3 * (j * myInfo.biHeight + i) + 1];
-                    secondBuffer[3 * (i * myInfo.biWidth + j) + 2] = firstBuffer[3 * (j * myInfo.biHeight + i) + 2];
+                    buffer2[i][3 * j] = buffer[j][3 * i];
+                    buffer2[i][3 * j + 1] = buffer[j][3 * i + 1];
+                    buffer2[i][3 * j + 2] = buffer[j][3 * i + 2];
                 }
             }
             break;
         case(270):
             for (int i = 0; i < myInfo.biHeight; i++) {
                 for (int j = 0; j < myInfo.biWidth; j++) {
-                    secondBuffer[3 * (i * myInfo.biWidth + j)] = firstBuffer[3 * ((myInfo.biWidth - j - 1) * myInfo.biHeight + i)];
-                    secondBuffer[3 * (i * myInfo.biWidth + j) + 1] = firstBuffer[3 * ((myInfo.biWidth - j - 1) * myInfo.biHeight + i) + 1];
-                    secondBuffer[3 * (i * myInfo.biWidth + j) + 2] = firstBuffer[3 * ((myInfo.biWidth - j - 1) * myInfo.biHeight + i) + 2];
+                    buffer2[i][3 * j] = buffer[myInfo.biWidth - j - 1][3 * i];
+                    buffer2[i][3 * j + 1] = buffer[myInfo.biWidth - j - 1][3 * i + 1];
+                    buffer2[i][3 * j + 2] = buffer[myInfo.biWidth - j - 1][3 * i + 2];
                 }
             }
             break;
         }
-        delete[]firstBuffer;
-        unsigned char* buffer2 = createBuffer();
-        //rewrite the received information by adding nulls
-        addNull(buffer2, secondBuffer, myInfo.biWidth, myInfo.biHeight, padding, stride);
-        delete[]secondBuffer;
-        myHeader.bfSize = myInfo.biSize + 14 + stride * myInfo.biHeight;
+        for (int i = 0; i < myInfo.biWidth; i++) {
+            delete[]buffer[i];
+        }
+        delete[]buffer;
         return buffer2;
     }
     // method for applying a Gauss filter
-    unsigned char* blur_collapsed(int radius, double sigma, unsigned char* buffer) {
-        unsigned char* firstBuffer = new unsigned char[3 * myInfo.biWidth * myInfo.biHeight];
-        unsigned char* secondBuffer = new unsigned char[3 * myInfo.biWidth * myInfo.biHeight];
-        deleteNull(buffer, firstBuffer, myInfo.biWidth, myInfo.biHeight, padding, stride);
-        delete[]buffer;
+    unsigned char** blur_collapsed(int radius, double sigma, unsigned char** buffer) {
         double* coeff = generate_coeff(radius, sigma);
         int sq = 2 * radius + 1;
         //apply a filter on pixels
         int i, j, m, n;
         double a1 = 0; double a2 = 0; double a3 = 0;
+        unsigned char** buffer2 = createBuffer();
         for (i = 0; i < myInfo.biHeight; i++) {
             for (j = 0; j < myInfo.biWidth; j++) {
                 a1 = 0;
@@ -255,22 +262,24 @@ public:
                     for (n = -radius; n < radius + 1; n++) {
                         //condition for correct image recording
                         if (m + i >= 0 && m + i < myInfo.biHeight && n + j >= 0 && n + j < myInfo.biWidth) {
-                            a1 += coeff[sq * (m + radius) + n + radius] * firstBuffer[3 * ((i + m) * (myInfo.biWidth) + (j + n))];
-                            a2 += coeff[sq * (m + radius) + n + radius] * firstBuffer[3 * ((i + m) * (myInfo.biWidth) + (j + n)) + 1];
-                            a3 += coeff[sq * (m + radius) + n + radius] * firstBuffer[3 * ((i + m) * (myInfo.biWidth) + (j + n)) + 2];
+                            a1 += coeff[sq * (m + radius) + n + radius] * buffer[i + m][3*(j + n)];
+                            a2 += coeff[sq * (m + radius) + n + radius] * buffer[i + m][3*(j + n) + 1];
+                            a3 += coeff[sq * (m + radius) + n + radius] * buffer[i + m][3*(j + n) + 2];
                         }
                     }
                 }
-                secondBuffer[3 * (i * (myInfo.biWidth) + j)] = (unsigned char)a1;
-                secondBuffer[3 * (i * (myInfo.biWidth) + j) + 1] = (unsigned char)a2;
-                secondBuffer[3 * (i * (myInfo.biWidth) + j) + 2] = (unsigned char)a3;
+                buffer2[i][3 * j] = (unsigned char)a1;
+                buffer2[i][3 * j + 1] = (unsigned char)a2;
+                buffer2[i][3 * j + 2] = (unsigned char)a3;
             }
         }
         delete[]coeff;
-        delete[]firstBuffer;
-        unsigned char* buffer2 = createBuffer();
-        addNull(buffer2, secondBuffer, myInfo.biWidth, myInfo.biHeight, padding, stride);
-        delete[]secondBuffer;
+        for (int i = 0; i < myInfo.biHeight; i++) {
+            delete[]buffer[i];
+        }
+        delete[]buffer;
         return buffer2;
     }
 };
+
+    
