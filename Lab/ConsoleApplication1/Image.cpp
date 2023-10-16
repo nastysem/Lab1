@@ -29,37 +29,7 @@ private:
         }
         return buffer;
     }
-    //method for rewriting information from one buffer to another WITHOUT nulls
-    void deleteNull(unsigned char* buffer, unsigned char* firstBuffer, int width, int height, int padding, int stride) {
-        int r = 0;
-        int q = 0;
-        for (int k = 0; k < height; k++) {
-            for (r; r < 3 * width * (k + 1); r++) {
-                firstBuffer[r] = buffer[q];
-                q++;
-            }
-            for (int l = 0; l < padding; l++) {
-                if (q < height * stride)
-                    q++;
-            }
-        }
-    }
-    //method for rewriting information from one buffer to another ADDING nulls
-    void addNull(unsigned char* buffer, unsigned char* secondBuffer, int width, int height, int padding, int stride) {
-        int m = 0;
-        int n = 0;
-        for (int k = 0; k < myInfo.biHeight; k++) {
-            for (m; m < 3 * myInfo.biWidth * (k + 1); m++) {
-                buffer[n] = secondBuffer[m];
-                n++;
-            }
-            for (int l = 0; l < padding; l++) {
-                buffer[n] = 0;
-                if (n < myInfo.biHeight * stride)
-                    n++;
-            }
-        }
-    }
+    
     //method for generating Gaussian kernel coefficients
     double* generate_coeff(int radius, double sigma) {
         const int sq = 2 * radius + 1;
