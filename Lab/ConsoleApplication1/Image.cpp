@@ -1,10 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include "Header.h"
-#include <io.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
+#include <cmath>    
 using namespace std;
 class Image {
 private:
