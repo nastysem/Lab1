@@ -1,53 +1,34 @@
-#ifndef HEADER_H
-#define HEADER_H
-typedef int FXPT2DOT30;
-
-typedef struct {
-    FXPT2DOT30 ciexyzX;
-    FXPT2DOT30 ciexyzY;
-    FXPT2DOT30 ciexyzZ;
-} CIEXYZ;
-
-typedef struct {
-    CIEXYZ  ciexyzRed;
-    CIEXYZ  ciexyzGreen;
-    CIEXYZ  ciexyzBlue;
-} CIEXYZTRIPLE;
-typedef struct
+#ifndef IMAGE_H
+#define IMAGE_H
+#include <string>
+#pragma pack(push, 2)
+struct BITMAPFILEHEADER
 {
-    unsigned short  bfType; //сигнатура формата файла, должно быть BM = 0x4d42
-    unsigned int   bfSize; //размер файла в байтах
-    unsigned short    bfReserved1; //2 байта зарезервированы и должны быть установлены на 0
-    unsigned short    bfReserved2; //см. bfReserved1
-    unsigned int   bfOffBits; //смещение от начала до растровых данных
-} BITMAPFILEHEADER;
+    int16_t  bfType; //сигнатура формата файла, должно быть BM = 0x4d42
+    int32_t   bfSize; //размер файла в байтах
+    int16_t    bfReserved1; //2 байта зарезервированы и должны быть установлены на 0
+    int16_t    bfReserved2;
+    int32_t   bfOffBits; //смещение от начала до растровых данных
 
-typedef struct
+} ;
+#pragma pack(pop)
+#pragma pack(push, 2)
+struct BITMAPINFOHEADER
 {
-    unsigned int    biSize; //размер данной структуры в байтах, указывающий также на версию структуры
-    int             biWidth; //ширина растра в пикселях. указывается целым числом со знаком. ноль и отрицательные не документированы
-    int             biHeight; //целое число со знаком, содержащее 2 параметра: высота растра в пикселях (абсолютное значение числа) и порядок следования строк в двумерных массивах (знак числа). нулевое значение не документировано.
-    unsigned short  biPlanes; //2 байта, указывающие количество цветовых плоскостей для целевого устройста, всегда равное 1
-    unsigned short  biBitCount; //количество бит на пиксель, равно 0 (пиксели хранятся в формате JPEG или PNG), 1, 4, 8, 16, 24, 32. У нас 24
-    unsigned int    biCompression; //указывает на способ хранения пикселей. BI_RGB | BI_RLE8 | BI_RLE4 |BI_BITFIELDS | BI_JPEG | BI_PNG. реально используется только BI_RGB. Указывает тип сжатия изображения, BI_RGB означает отсутствие сжатия (это поле равно 0)
-    unsigned int    biSizeImage; //указывает размер растровых данных; при использовании BI_RGB его можно установить равным 0 (т.е. если хранение осуществляется двумерным массивом)
-    int             biXPelsPerMeter; //указывает горизонтальное разрешение, единица измерения - пиксель/метр, целое число со знаком
-    int             biYPelsPerMeter; //указывает вертикальное разрешение, единица измерения - пиксель/метр, целое число со знаком
-    unsigned int    biClrUsed; //количество используемых цветов (если есть таблица цветов). 0 вроде означает использовать все. Вроде для 24 RGBTRIPPLE
-    unsigned int    biClrImportant; //количество важных цветов. Если 0, то все цвета считаются важными. 
-    unsigned int    biRedMask; //дальше всякие поля для заголовков побольше чем 40
-    unsigned int    biGreenMask;
-    unsigned int    biBlueMask;
-    unsigned int    biAlphaMask;
-    unsigned int    biCSType;
-    CIEXYZTRIPLE    biEndpoints;
-    unsigned int    biGammaRed;
-    unsigned int    biGammaGreen;
-    unsigned int    biGammaBlue;
-    unsigned int    biIntent;
-    unsigned int    biProfileData;
-    unsigned int    biProfileSize;
-    unsigned int    biReserved;
-} BITMAPINFOHEADER;
+    int32_t  biSize; //размер данной структуры в байтах, указывающий также на версию структуры
+    int32_t  biWidth; //ширина растра в пикселях. указывается целым числом со знаком. ноль и отрицательные не документированы
+    int32_t  biHeight; //целое число со знаком, содержащее 2 параметра: высота растра в пикселях (абсолютное значение числа) и порядок следования строк в двумерных массивах (знак числа). нулевое значение не документировано.
+    int16_t  biPlanes; //2 байта, указывающие количество цветовых плоскостей для целевого устройста, всегда равное 1
+    int16_t  biBitCount; //количество бит на пиксель, равно 0 (пиксели хранятся в формате JPEG или PNG), 1, 4, 8, 16, 24, 32. У нас 24
+    int32_t  biCompression; //указывает на способ хранения пикселей. BI_RGB | BI_RLE8 | BI_RLE4 |BI_BITFIELDS | BI_JPEG | BI_PNG. реально используется только BI_RGB. Указывает тип сжатия изображения, BI_RGB означает отсутствие сжатия (это поле равно 0)
+    int32_t  info_40[5];
 
+};
+#pragma pack(pop)
+#pragma pack(push, 2)
+struct BITMAPINFOHEADER_MORE_THAN_40 {
+    int32_t  info_108[17];
+    int32_t  info_124[4];
+};
+#pragma pack(pop)
 #endif 
